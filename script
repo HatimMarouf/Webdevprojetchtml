@@ -1,77 +1,96 @@
-const express = require('express');
-const app = express();
-const port = 3000;
-
-// Enable CORS for cross-origin requests
-const cors = require('cors');
-app.use(cors());
-
-// Sample data for questions and feedback
-const questions = [
-    {
-        id: 1,
-        type: "rate",
-        title: "How satisfied are you with the Java learning resources?",
-        description: "Rate your satisfaction on a scale of 1 (lowest) to 5 (highest).",
-        options: ["1", "2", "3", "4", "5"]
-    },
-    {
-        id: 2,
-        type: "rate",
-        title: "How would you rate the difficulty level of Java?",
-        description: "Rate the difficulty on a scale of 1 (easy) to 5 (hard).",
-        options: ["1", "2", "3", "4", "5"]
-    },
-    {
-        id: 3,
-        type: "free",
-        title: "What challenges did you face while learning Java?",
-        description: "Please describe the challenges you faced.",
-        options: []
+document.getElementById('userStatus').addEventListener('change', function () {
+    const status = this.value;
+    if (status) {
+        fetchQuestions(status);
+    } else {
+        document.getElementById('questionsContainer').innerHTML = '';
     }
-];
-
-const feedback = [];
-
-// Routes
-app.get('/', (req, res) => {
-    res.send(`
-        <h1>Java Feedback Backend</h1>
-        <p>Available resources:</p>
-        <ul>
-            <li><a href="/questions">Questions</a></li>
-            <li><a href="/feedback">Feedback</a></li>
-        </ul>
-    `);
 });
 
-// Get all questions
-app.get('/questions', (req, res) => {
-    res.json(questions);
-});
+function fetchQuestions(status) {
+    fetch('http://localhost:3000/questions')
+        .then(response => response.json())
+        .then(questions => {
+            const questionContainer = document.getElementById('questionsContainer');
+            questionContainer.innerHTML = '';
 
-// Get a specific question by ID
-app.get('/questions/:id', (req, res) => {
-    const question = questions.find(q => q.id == req.params.id);
-    question ? res.json(question) : res.status(404).send("Question not found");
-});
+            questions.forEach(question => {
+                const questionElement = document.createElement('div');
 
-// Submit feedback
-app.post('/feedback', express.json(), (req, res) => {
-    const { name, status, comments, answers } = req.body;
-    if (!name || !status || !comments || !answers) {
-        return res.status(400).send("All fields are required.");
+                if (question.type === "rate") {
+                    questionElement.innerHTML = `
+                        <label for="question${question.id}">
+                            <strong>${question.title}</strong><br>
+                            <em>${question.description}</em>
+                        </label>
+                        <select id="question${question.id}" name="question${question.id}" required>
+                            <option value="">-- Select a rating --</option>
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                        </select>
+                    `;
+                } else {
+                    questionElement.innerHTML = `
+                        <label for="question${question.id}">
+                            <strong>${question.title}</strong><br>
+                            <em>${question.description}</em>
+                        </label>
+                        <input type="text" id="question${question.id}" name="question${question.id}" required>
+                    `;
+                }
+
+                questionContainer.appendChild(questionElement);
+            });
+        })
+        .catch(error => {
+            console.error('Error fetching questions:', error);
+        });
+}
+
+document.getElementById('feedbackForm').addEventListener('submit', function (event) {
+    event.preventDefault();
+
+    const name = document.getElementById('name').value.trim();
+    const status = document.getElementById('userStatus').value.trim();
+    const comments = document.getElementById('comments').value.trim();
+
+    if (!name || !status || !comments) {
+        alert('Please complete all the fields before submitting!');
+        return;
     }
-    feedback.push({ name, status, comments, answers });
-    res.status(201).send("Feedback submitted successfully!");
-});
 
-// Get all feedback
-app.get('/feedback', (req, res) => {
-    res.json(feedback);
-});
+    const questionContainer = document.getElementById('questionsContainer');
+    const inputs = questionContainer.querySelectorAll('input, select');
+    const answers = {};
 
-// Start the server
-app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+    inputs.forEach(input => {
+        const questionId = input.id.replace('question', '');
+        answers[questionId] = input.value;
+    });
+
+    fetch('http://localhost:3000/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, status, comments, answers })
+    })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to submit feedback.');
+            }
+            return response.text();
+        })
+        .then(() => {
+            alert('Your feedback has been submitted successfully!');
+            document.getElementById('feedbackForm').reset();
+            questionContainer.innerHTML = '';
+        })
+        .catch(error => {
+            console.error('Error submitting feedback:', error);
+            alert('An error occurred while submitting feedback.');
+        });
 });
