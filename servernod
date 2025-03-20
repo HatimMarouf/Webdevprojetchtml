@@ -1,0 +1,77 @@
+const express = require('express');
+const app = express();
+const port = 3000;
+
+// Enable CORS for cross-origin requests
+const cors = require('cors');
+app.use(cors());
+
+// Sample data for questions and feedback
+const questions = [
+    {
+        id: 1,
+        type: "rate",
+        title: "How satisfied are you with the Java learning resources?",
+        description: "Rate your satisfaction on a scale of 1 (lowest) to 5 (highest).",
+        options: ["1", "2", "3", "4", "5"]
+    },
+    {
+        id: 2,
+        type: "rate",
+        title: "How would you rate the difficulty level of Java?",
+        description: "Rate the difficulty on a scale of 1 (easy) to 5 (hard).",
+        options: ["1", "2", "3", "4", "5"]
+    },
+    {
+        id: 3,
+        type: "free",
+        title: "What challenges did you face while learning Java?",
+        description: "Please describe the challenges you faced.",
+        options: []
+    }
+];
+
+const feedback = [];
+
+// Routes
+app.get('/', (req, res) => {
+    res.send(`
+        <h1>Java Feedback Backend</h1>
+        <p>Available resources:</p>
+        <ul>
+            <li><a href="/questions">Questions</a></li>
+            <li><a href="/feedback">Feedback</a></li>
+        </ul>
+    `);
+});
+
+// Get all questions
+app.get('/questions', (req, res) => {
+    res.json(questions);
+});
+
+// Get a specific question by ID
+app.get('/questions/:id', (req, res) => {
+    const question = questions.find(q => q.id == req.params.id);
+    question ? res.json(question) : res.status(404).send("Question not found");
+});
+
+// Submit feedback
+app.post('/feedback', express.json(), (req, res) => {
+    const { name, status, comments, answers } = req.body;
+    if (!name || !status || !comments || !answers) {
+        return res.status(400).send("All fields are required.");
+    }
+    feedback.push({ name, status, comments, answers });
+    res.status(201).send("Feedback submitted successfully!");
+});
+
+// Get all feedback
+app.get('/feedback', (req, res) => {
+    res.json(feedback);
+});
+
+// Start the server
+app.listen(port, () => {
+    console.log(`Server running at http://localhost:${port}`);
+});
