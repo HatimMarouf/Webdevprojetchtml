@@ -45,6 +45,5 @@ This project is a web application designed to collect feedback from users about 
 2. Answer the dynamically loaded questions.
 3. Enter your comments and submit the form.
 
-## Screenshots
-![Feedback Form](screenshots/feedback-form.png)
-![Comments Section](screenshots/comments-section.png)
+
+
